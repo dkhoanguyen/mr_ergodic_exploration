@@ -1,7 +1,7 @@
 from double_integrator import DoubleIntegrator
 from ergodic_control import RTErgodicControl
 from target_dist import TargetDist
-from utils import convert_phi2phik, convert_ck2dist, convert_traj2ck, convert_phik2phi
+from util import convert_phi2phik, convert_ck2dist, convert_traj2ck, convert_phik2phi
 import numpy as np
 
 import matplotlib.pyplot as plt

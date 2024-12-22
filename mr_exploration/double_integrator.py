@@ -57,7 +57,7 @@ class DoubleIntegrator(object):
         '''
         if state is None:
             self.state     = np.zeros(self.observation_space.shape[0])
-            self.state[:2] = np.random.uniform(0., 0.9, size=(2,))
+            # self.state[:2] = np.random.uniform(0., 0.9, size=(2,))
         else:
             self.state = state.copy()
 

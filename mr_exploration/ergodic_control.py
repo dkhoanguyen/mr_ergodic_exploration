@@ -55,6 +55,7 @@ class RTErgodicControl(object):
         self.u_seq[:-1] = self.u_seq[1:]
         self.u_seq[-1]  = np.zeros(self.model.action_space.shape)
 
+        print(f"state: {state}")
         x = self.model.reset(state)
 
         pred_traj = []
@@ -71,6 +72,7 @@ class RTErgodicControl(object):
             dbar.append(self.barr.dx(x[self.model.explr_idx]))
             # step the model forwards
             x = self.model.step(self.u_seq[t] * 0.)
+        print(f"x after horizon step: {x}")
 
         # sample any past experiences
         if len(self.replay_buffer) > self.batch_size:
@@ -100,12 +102,14 @@ class RTErgodicControl(object):
 
             bdx = np.zeros(self.model.observation_space.shape)
             bdx[self.model.explr_idx] = dbar[t]
-            rho = rho - self.model.dt * (- edx - bdx - np.dot(fdx[t].T, rho))
+            rho = rho - 0.1 * (- edx - bdx - np.dot(fdx[t].T, rho))
 
             self.u_seq[t] = -np.dot(np.dot(self.Rinv, fdu[t].T), rho)
             if (np.abs(self.u_seq[t]) > 1.0).any():
                 self.u_seq[t] /= np.linalg.norm(self.u_seq[t])
+        print(f"x: {x}")
+        print(f"u: {self.u_seq[0]}")
+
 
         self.replay_buffer.push(state[self.model.explr_idx])
-
         return self.u_seq[0].copy()

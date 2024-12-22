@@ -153,6 +153,8 @@ class Agent(DoubleIntegrator):
             # Check communication status for all agents
             comm_link = all(_ck is not None for _ck in self.ck_list)
 
+            # print(f"state b4 step: {self.state}")
+
             # Update ck in the controller and compute control input
             if comm_link:
                 ctrl = self.controller(self.state, self.ck_list, self.agent_num)
@@ -163,32 +165,35 @@ class Agent(DoubleIntegrator):
             ctrl_speed = np.linalg.norm(ctrl)
             if ctrl_speed > self.max_speed:
                 ctrl = ctrl / ctrl_speed * self.max_speed
+            # print(ctrl)
 
             # Store the Fourier coefficients (ck) for sharing
             current_ck = self.controller.ck.copy()
             self.update_ck(self.agent_num, current_ck)
 
             # Update the state using the control input
+            print(f"state b4 step: {self.state}")
             self.state = self.step(ctrl)
+            print(f"Updated x: {self.state}")
             self.trajectory.append(self.state.copy())
 
             # Calculate and store the ergodic metric
             ergodic_metric = np.sum(self.controller.lamk * (current_ck - self.controller.phik)**2)
             self.ergodic_metrics.append(ergodic_metric)
             # print(f"Agent {self.agent_num} - Step {step}: Ergodic Metric = {ergodic_metric}")
-
+            print()
         # Return the ergodic metrics for analysis
         return self.ergodic_metrics
 
 if __name__ == "__main__":
-    num_agents = 3  # Number of robots
+    num_agents = 1  # Number of robots
     max_speed = 1.0  # Set the maximum allowable speed
 
     # Initialize agents
     agents = [Agent(agent_num=i, tot_agents=num_agents, max_speed=max_speed) for i in range(num_agents)]
 
     # Run the simulation
-    steps = 250
+    steps = 5
     all_ergodic_metrics = []
     for step in range(steps):
         for agent in agents:
@@ -218,17 +223,60 @@ if __name__ == "__main__":
     # plt.legend()
     # plt.show()
     # Plot trajectories for all agents
-    plt.figure(figsize=(8, 8))
-    xy, vals = agents[0].t_dist.get_grid_spec()
-    plt.contourf(*xy, vals, levels=10)
-    for agent in agents:
-        trajectory = np.array(agent.trajectory)
-        plt.plot(trajectory[:, 0], trajectory[:, 1], label=f"Agent {agent.agent_num}")
-    plt.title("Trajectories of All Agents")
-    plt.xlabel("X Position")
-    plt.ylabel("Y Position")
-    plt.xlim([0, 1])
-    plt.ylim([0, 1])
-    plt.grid()
-    plt.legend()
-    plt.show()
+    # plt.figure(figsize=(8, 8))
+    # xy, vals = agents[0].t_dist.get_grid_spec()
+    # plt.contourf(*xy, vals, levels=10)
+    # for agent in agents:
+    #     trajectory = np.array(agent.trajectory)
+    #     plt.plot(trajectory[:, 0], trajectory[:, 1], label=f"Agent {agent.agent_num}")
+    # plt.title("Trajectories of All Agents")
+    # plt.xlabel("X Position")
+    # plt.ylabel("Y Position")
+    # plt.xlim([0, 1])
+    # plt.ylim([0, 1])
+    # # plt.grid()
+    # # plt.legend()
+    # plt.show()
+
+    # from matplotlib.animation import FuncAnimation, PillowWriter
+    # import matplotlib.animation as animation
+    #     # Prepare data for animation
+    # trajectories = [np.array(agent.trajectory) for agent in agents]
+    # t_dist = agents[0].t_dist
+    # xy, vals = t_dist.get_grid_spec()
+
+    # # Create animation
+    # fig, ax = plt.subplots(figsize=(8, 8))
+    # ax.set_xlim(0.0, 1.0)
+    # ax.set_ylim(0.0, 1.0)
+    # ax.set_title("Trajectories of All Agents")
+    # ax.set_xlabel("X Position")
+    # ax.set_ylabel("Y Position")
+    # ax.contourf(*xy, vals, levels=10, cmap='Reds', alpha=0.6)
+
+    # # Plot each agent's trajectory and state
+    # lines = []
+    # states = []
+    # for agent in agents:
+    #     line, = ax.plot([], [], linestyle='-', alpha=0.8, label=f"Agent {agent.agent_num}")
+    #     state, = ax.plot([], [], 'o', markersize=6)
+    #     lines.append(line)
+    #     states.append(state)
+
+    # def update_plot(frame):
+    #     for i, (traj, line, state) in enumerate(zip(trajectories, lines, states)):
+    #         if frame < len(traj):
+    #             line.set_data(traj[:frame, 0], traj[:frame, 1])
+    #             state.set_data(traj[frame, 0], traj[frame, 1])
+    #     return lines + states
+
+    # ani = FuncAnimation(fig, update_plot, frames=steps, interval=50, blit=True)
+
+    # # # Save animation to MP4
+    # # output_filename = "trajectories.mp4"
+    # # ani.save(output_filename, writer=animation.FFMpegWriter(fps=20))
+    # # print(f"Animation saved as {output_filename}")
+
+    # # Display animation
+    # plt.legend()
+    # plt.show()
