@@ -17,7 +17,7 @@ class TargetDist(object):
         self.grid = np.c_[grid[0].ravel(), grid[1].ravel()]
 
         self.means = [np.array([0.5, 0.5])]
-        self.vars  = [np.array([0.25,0.25])**2]
+        self.vars  = [np.array([0.025,0.025])]
 
         self.has_update = False
         self.grid_vals = self.__call__(self.grid)

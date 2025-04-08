@@ -63,7 +63,6 @@ class Agent():
         
         # Enforce maximum speed constraint during optimization
         u_speed = np.linalg.norm(u)
-        print(u_speed)
         if u_speed > self._max_speed:
             u = u / u_speed * self._max_speed
 
@@ -78,6 +77,8 @@ class Agent():
         # # Calculate and store the ergodic metric
         ergodic_metric = np.sum(
             self._controller.lamk * (current_ck - self._controller.phik)**2)
+        
+        print(ergodic_metric)
 
     def _update_ck(self, agent_idx: int, ck: float):
         self._ck_list[agent_idx] = ck
