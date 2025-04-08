@@ -13,8 +13,8 @@ from matplotlib.animation import FuncAnimation
 
 
 def main():
-    num_agents = 3         # Number of robots
-    max_speed = 0.2        # Maximum allowable speed
+    num_agents = 2         # Number of robots
+    max_speed = 1.0        # Maximum allowable speed
 
     # Define the observation, action, and exploration spaces
     observation_space = Box(np.array([0., 0., -np.inf, -np.inf]),
@@ -46,8 +46,9 @@ def main():
     # Specify initial states for some agents.
     initial_states = [
         np.array([0.5, 0.1, 0.1, 0]),
-        np.array([0.1, 0.9, 0.1, 0]),
-        np.array([0.8, 0.8, 0.1, 0])
+        np.array([0.1, 0.9, 0.0, 0.1]),
+        np.array([0.8, 0.8, 0.1, 0]),
+        np.array([0.2, 0.8, 0.1, 0])
     ]
     
     for i in range(num_agents):
@@ -89,10 +90,12 @@ def main():
         ax.set_ylim([0, 1])
 
         # Advance the simulation and plot the robot as a dot.
+        r: Agent
+        other_robot: Agent
         for r in robots:
             for other_robot in robots:
                 if r.idx != other_robot.idx:
-                    r._update_ck(other_robot.idx, other_robot._controller.ck)
+                    r.update_ck(other_robot.idx, other_robot._controller.ck)
             r.run(steps=1)  # Advance simulation by one step
             if len(r._trajectory) > 0:
                 pos = r._trajectory[-1]  # Get the current position
@@ -104,7 +107,7 @@ def main():
 
     # Create the animation with 500 frames and update every 50ms
     ani = FuncAnimation(fig, update, frames=1000,
-                        interval=50, blit=True, repeat=False)
+                        interval=60, blit=True, repeat=False)
 
     plt.show()
 

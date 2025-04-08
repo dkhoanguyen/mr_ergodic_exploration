@@ -49,7 +49,7 @@ class Agent():
         # First calculate the Fourier coefficients for the target distribution
         if self._t_dist and self._t_dist_has_updated:
             self._controller.set_t_dist(self._t_dist)
-            self._t_dist_has_updated = False
+            # self._t_dist_has_updated = False
 
         # Check communication status for all agents
         comm_link = all(_ck is not None for _ck in self._ck_list)
@@ -68,7 +68,7 @@ class Agent():
 
         # Store the Fourier coefficients (ck) for sharing
         current_ck = self._controller.ck.copy()
-        self._update_ck(self._agent_idx, current_ck)
+        self.update_ck(self._agent_idx, current_ck)
 
         # Update the state using the control input
         self._state = self._dynamics.step(x=self._state.copy(),u=u,dt=dt)
@@ -77,8 +77,7 @@ class Agent():
         # # Calculate and store the ergodic metric
         ergodic_metric = np.sum(
             self._controller.lamk * (current_ck - self._controller.phik)**2)
-        
-        print(ergodic_metric)
+    
 
-    def _update_ck(self, agent_idx: int, ck: float):
+    def update_ck(self, agent_idx: int, ck: float):
         self._ck_list[agent_idx] = ck
