@@ -5,7 +5,7 @@ import numpy as np
 from gymnasium.spaces import Box
 
 
-class DynamicsBase:
+class DynamicsBase(ABC):
     def __init__(self,
                  observation_space: Box,
                  action_space: Box,
