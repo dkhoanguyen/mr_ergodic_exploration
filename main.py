@@ -15,9 +15,9 @@ from matplotlib.patches import Circle
 
 
 def main():
-    num_agents = 2         # Number of robots
-    max_speed = 0.5        # Maximum allowable speed
-    max_accel = 0.1
+    num_agents = 1         # Number of robots
+    max_speed = 0.1        # Maximum allowable speed
+    max_accel = 1.0
 
     sensing_range = 0.1
 
@@ -60,7 +60,7 @@ def main():
 
     ground_truth_animal_state = [
         np.array([0.55, 0.8]),
-        np.array([0.2, 0.5])
+        # np.array([0.2, 0.5])
     ]
 
     belief_animal = [Belief(state=np.array(
@@ -80,7 +80,7 @@ def main():
         robots.append(robot)
 
     # Animals
-    sensor = SimpleSensor(range=sensing_range, noise=0.075)
+    sensor = SimpleSensor(range=sensing_range, noise=0.025)
 
     # Set up the plot
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -105,8 +105,8 @@ def main():
             coll.remove()
 
         # Re-draw static elements (e.g., target distribution background).
-        xy, vals = target_dist.get_grid_spec()  # static target distribution background
-        ax.contourf(*xy, vals, levels=10)
+        # xy, vals = target_dist.get_grid_spec()  # static target distribution background
+        # ax.contourf(*xy, vals, levels=10)
         ax.set_title("Real-Time Robot Movement")
         ax.set_xlabel("X Position")
         ax.set_ylabel("Y Position")
@@ -123,15 +123,11 @@ def main():
         r: Agent
         other_robot: Agent
         for r in robots:
-            for other_robot in robots:
-                if r.idx != other_robot.idx:
-                    r.update_ck(other_robot.idx, other_robot._controller.ck)
-            r.run(steps=1)  # Advance simulation by one step
+            # Update the robot's measurement
             measurement, valid = sensor.step(
                 sensor_state=r.state[:2],
                 ground_truth_state=ground_truth_animal_state
             )
-
             # Plot the animal's estimated position
             target_dist.means.clear()
             target_dist.vars.clear()
@@ -143,9 +139,24 @@ def main():
                 means.append(belief_animal[idx].state)
                 vars.append(belief_animal[idx].variance)
 
+                animal_pos = ax.plot(belief_animal[idx].state[0], belief_animal[idx].state[1], 'kx', markersize=7)
+                drawn_artists.append(animal_pos)
+
             target_dist.update(means, vars)
             r.t_dist = target_dist
+            # print(np.sum(target_dist.grid_vals))
 
+            # Calculate current free energy
+            value = target_dist.get_subsection(r.state[:2],sensing_range)
+            print(value)
+            
+
+            for other_robot in robots:
+                if r.idx != other_robot.idx:
+                    r.update_ck(other_robot.idx, other_robot._controller.ck)
+            r.run(steps=1)  # Advance simulation by one step
+
+            # Plotting
             if len(r._trajectory) > 0:
                 pos = r._trajectory[-1]  # Get the current position
                 # Plot as a red dot
