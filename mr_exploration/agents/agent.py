@@ -3,7 +3,7 @@
 import numpy as np
 from mr_exploration.dynamics.dynamics_base import DynamicsBase
 from mr_exploration.controllers.ergodic_controller import RTErgodicController
-from mr_exploration.util.distribution import Distribution
+from mr_exploration.fourier_metric.distribution import Distribution
 
 
 class Agent():
@@ -39,15 +39,18 @@ class Agent():
     @t_dist.setter
     def t_dist(self, value: Distribution):
         self._t_dist = value
-        self._t_dist_has_updated = True
 
     @property
     def idx(self):
         return self._agent_idx
+    
+    @property
+    def state(self) -> np.ndarray:
+        return self._state.copy()
 
     def run(self, steps: int = 200, dt: float = 0.1):
         # First calculate the Fourier coefficients for the target distribution
-        if self._t_dist and self._t_dist_has_updated:
+        if self._t_dist:
             self._controller.set_t_dist(self._t_dist)
             # self._t_dist_has_updated = False
 

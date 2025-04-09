@@ -5,8 +5,8 @@ from mr_exploration.controllers.basis import Basis
 from mr_exploration.controllers.barrier import Barrier
 from mr_exploration.controllers.replay_buffer import ReplayBuffer
 from mr_exploration.dynamics.dynamics_base import DynamicsBase
-from mr_exploration.util.distribution import Distribution
-from mr_exploration.util.fourier_metric import FourierMetric
+from mr_exploration.fourier_metric.distribution import Distribution
+from mr_exploration.fourier_metric.fourier_metric import FourierMetric
 
 
 class RTErgodicController:

@@ -3,10 +3,10 @@ import numpy as np
 from gymnasium.spaces import Box
 from mr_exploration.dynamics.double_integrator import DoubleIntegrator
 from mr_exploration.controllers.ergodic_controller import RTErgodicController
-from mr_exploration.util.target_dist import TargetDist
-from mr_exploration.util.distribution import Distribution
-from mr_exploration.util.utils import *
+from mr_exploration.fourier_metric.distribution import Distribution
+from mr_exploration.fourier_metric.utils import *
 from mr_exploration.agents.agent import Agent
+from mr_exploration.sensor.simple_sensor import SimpleSensor
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -15,10 +15,10 @@ from matplotlib.patches import Circle
 
 def main():
     num_agents = 1         # Number of robots
-    max_speed = 0.15        # Maximum allowable speed
-    max_accel = 0.1
+    max_speed = 0.1        # Maximum allowable speed
+    max_accel = 0.01
 
-    sensing_range = 0.15
+    sensing_range = 0.1
 
     # Define the observation, action, and exploration spaces
     observation_space = Box(np.array([0., 0., -np.inf, -np.inf]),
@@ -42,7 +42,7 @@ def main():
 
     # Create target distribution and controller
     # target_dist = TargetDist(num_nodes=3)
-    target_dist = Distribution(num_pts=30)
+    target_dist = Distribution(num_pts=50)
     controller = RTErgodicController(dynamics=di, horizon=15,
                                      num_basis=5, batch_size=200, capacity=500)
 
@@ -57,6 +57,10 @@ def main():
         np.array([0.2, 0.8, 0.1, 0])
     ]
 
+    ground_truth_animal_state = [
+        np.array([0.5, 0.8])
+    ]
+
     for i in range(num_agents):
         robot = Agent(initial_state=initial_states[i],
                       dynamics=di,
@@ -67,9 +71,11 @@ def main():
         robot.t_dist = target_dist
         robots.append(robot)
 
+    # Animals
+    sensor = SimpleSensor(range=sensing_range, noise=0.015)
+
     # Set up the plot
     fig, ax = plt.subplots(figsize=(8, 8))
-    xy, vals = target_dist.get_grid_spec()  # static target distribution background
 
     # For each robot, create a line object to display its trajectory.
     robot_lines = []
@@ -86,8 +92,12 @@ def main():
     def update(frame):
         # Clear the previous frame.
         ax.cla()
+        # Clear previous contour collections (static elements) from the axes.
+        for coll in ax.collections[:]:
+            coll.remove()
 
         # Re-draw static elements (e.g., target distribution background).
+        xy, vals = target_dist.get_grid_spec()  # static target distribution background
         ax.contourf(*xy, vals, levels=10)
         ax.set_title("Real-Time Robot Movement")
         ax.set_xlabel("X Position")
@@ -104,6 +114,23 @@ def main():
                 if r.idx != other_robot.idx:
                     r.update_ck(other_robot.idx, other_robot._controller.ck)
             r.run(steps=1)  # Advance simulation by one step
+            measurement = sensor.step(
+                sensor_state=r.state[:2],
+                ground_truth_state=ground_truth_animal_state
+            )
+
+            # Plot the animal's estimated position
+            target_dist.means.clear()
+            target_dist.vars.clear()
+            means = []
+            vars = []
+            for m in measurement:
+                means.append(m[0])
+                vars.append(m[1])
+
+            target_dist.update(means, vars)
+            r.t_dist = target_dist
+
             if len(r._trajectory) > 0:
                 pos = r._trajectory[-1]  # Get the current position
                 # Plot as a red dot
@@ -120,8 +147,8 @@ def main():
         return drawn_artists
 
     # Create the animation with 500 frames and update every 50ms
-    ani = FuncAnimation(fig, update, frames=200,
-                        interval=50, blit=False, repeat=False)
+    ani = FuncAnimation(fig, update, frames=500,
+                        interval=80, blit=False, repeat=False)
 
     plt.show()
 
