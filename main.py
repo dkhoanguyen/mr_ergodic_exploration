@@ -7,6 +7,7 @@ from mr_exploration.fourier_metric.distribution import Distribution
 from mr_exploration.fourier_metric.utils import *
 from mr_exploration.agents.agent import Agent
 from mr_exploration.sensor.simple_sensor import SimpleSensor
+from mr_exploration.belief.belief import Belief
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -14,9 +15,9 @@ from matplotlib.patches import Circle
 
 
 def main():
-    num_agents = 1         # Number of robots
-    max_speed = 0.1        # Maximum allowable speed
-    max_accel = 0.01
+    num_agents = 2         # Number of robots
+    max_speed = 0.5        # Maximum allowable speed
+    max_accel = 0.1
 
     sensing_range = 0.1
 
@@ -58,7 +59,14 @@ def main():
     ]
 
     ground_truth_animal_state = [
-        np.array([0.5, 0.8])
+        np.array([0.55, 0.8]),
+        np.array([0.2, 0.5])
+    ]
+
+    belief_animal = [Belief(state=np.array(
+        [0.5, 0.5]), variance=np.array([1.0, 1.0])),
+        Belief(state=np.array(
+            [0.5, 0.5]), variance=np.array([1.0, 1.0])),
     ]
 
     for i in range(num_agents):
@@ -72,7 +80,7 @@ def main():
         robots.append(robot)
 
     # Animals
-    sensor = SimpleSensor(range=sensing_range, noise=0.015)
+    sensor = SimpleSensor(range=sensing_range, noise=0.075)
 
     # Set up the plot
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -106,6 +114,11 @@ def main():
         ax.set_ylim([0, 1])
 
         drawn_artists = []
+        for state in ground_truth_animal_state:
+            # Plot the animal's estimated position
+            animal_plot = ax.plot(state[0], state[1], 'ro', markersize=5)
+            drawn_artists.append(animal_plot)
+
         # Advance the simulation and plot the robot as a dot.
         r: Agent
         other_robot: Agent
@@ -114,7 +127,7 @@ def main():
                 if r.idx != other_robot.idx:
                     r.update_ck(other_robot.idx, other_robot._controller.ck)
             r.run(steps=1)  # Advance simulation by one step
-            measurement = sensor.step(
+            measurement, valid = sensor.step(
                 sensor_state=r.state[:2],
                 ground_truth_state=ground_truth_animal_state
             )
@@ -124,9 +137,11 @@ def main():
             target_dist.vars.clear()
             means = []
             vars = []
-            for m in measurement:
-                means.append(m[0])
-                vars.append(m[1])
+            for idx, m in enumerate(measurement):
+                if valid[idx]:
+                    belief_animal[idx].step(m[0], m[1])
+                means.append(belief_animal[idx].state)
+                vars.append(belief_animal[idx].variance)
 
             target_dist.update(means, vars)
             r.t_dist = target_dist
@@ -134,11 +149,11 @@ def main():
             if len(r._trajectory) > 0:
                 pos = r._trajectory[-1]  # Get the current position
                 # Plot as a red dot
-                robot_plot = ax.plot(pos[0], pos[1], 'ro', markersize=5)
+                robot_plot = ax.plot(pos[0], pos[1], 'go', markersize=5)
                 drawn_artists.append(robot_plot)
                 robot_sensing_range = Circle(
                     (pos[0], pos[1]), sensing_range,
-                    fill=False, linestyle='--', color='red')
+                    fill=False, linestyle='--', color='green')
                 ax.add_patch(robot_sensing_range)
                 drawn_artists.append(robot_sensing_range)
 

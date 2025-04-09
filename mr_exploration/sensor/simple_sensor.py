@@ -34,6 +34,7 @@ class SimpleSensor:
                 corresponding to each ground truth state.
         """
         results: List[Tuple[np.ndarray, np.ndarray]] = []
+        valid = []
         
         # Process each ground truth state.
         for gt in ground_truth_state:
@@ -47,11 +48,13 @@ class SimpleSensor:
                 noise = np.random.randn(*gt.shape) * sigma
                 estimated = gt + noise
                 covariance_vector = sigma**2 * np.ones(gt.shape)
+                valid.append(True)
             else:
                 # Out-of-range: return NaNs for measurement and infinite variance for the covariance.
                 estimated = np.array([0.5] * gt.shape[0])
                 covariance_vector = np.full(gt.shape, 1.0)
+                valid.append(False)
                 
             results.append((estimated, covariance_vector))
             
-        return results
+        return results, valid
