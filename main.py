@@ -2,19 +2,23 @@
 import numpy as np
 from gymnasium.spaces import Box
 from mr_exploration.dynamics.double_integrator import DoubleIntegrator
-from mr_exploration.dynamics.dublin_car import DublinCarModel
 from mr_exploration.controllers.ergodic_controller import RTErgodicController
 from mr_exploration.util.target_dist import TargetDist
+from mr_exploration.util.distribution import Distribution
 from mr_exploration.util.utils import *
 from mr_exploration.agents.agent import Agent
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Circle
 
 
 def main():
-    num_agents = 2         # Number of robots
-    max_speed = 1.0        # Maximum allowable speed
+    num_agents = 1         # Number of robots
+    max_speed = 0.15        # Maximum allowable speed
+    max_accel = 0.1
+
+    sensing_range = 0.15
 
     # Define the observation, action, and exploration spaces
     observation_space = Box(np.array([0., 0., -np.inf, -np.inf]),
@@ -30,19 +34,21 @@ def main():
                       dtype=np.float64)
 
     # Initialize the dynamics. Uncomment and switch models if needed.
-    di = DoubleIntegrator(1.0, 1.0,
+    di = DoubleIntegrator(max_speed,
+                          max_accel,
                           observation_space,
                           action_space,
                           explr_space)
 
     # Create target distribution and controller
-    target_dist = TargetDist(num_nodes=3)
+    # target_dist = TargetDist(num_nodes=3)
+    target_dist = Distribution(num_pts=30)
     controller = RTErgodicController(dynamics=di, horizon=15,
                                      num_basis=5, batch_size=200, capacity=500)
 
     # Create multiple agents with different initial states.
     robots = []
-    
+
     # Specify initial states for some agents.
     initial_states = [
         np.array([0.5, 0.1, 0.1, 0]),
@@ -50,14 +56,14 @@ def main():
         np.array([0.8, 0.8, 0.1, 0]),
         np.array([0.2, 0.8, 0.1, 0])
     ]
-    
+
     for i in range(num_agents):
         robot = Agent(initial_state=initial_states[i],
-                    dynamics=di,
-                    controller=controller,
-                    agent_idx=i,
-                    total_agents=num_agents,
-                    max_speed=max_speed)
+                      dynamics=di,
+                      controller=controller,
+                      agent_idx=i,
+                      total_agents=num_agents,
+                      max_speed=max_speed)
         robot.t_dist = target_dist
         robots.append(robot)
 
@@ -89,6 +95,7 @@ def main():
         ax.set_xlim([0, 1])
         ax.set_ylim([0, 1])
 
+        drawn_artists = []
         # Advance the simulation and plot the robot as a dot.
         r: Agent
         other_robot: Agent
@@ -100,14 +107,21 @@ def main():
             if len(r._trajectory) > 0:
                 pos = r._trajectory[-1]  # Get the current position
                 # Plot as a red dot
-                ax.plot(pos[0], pos[1], 'ro', markersize=10)
+                robot_plot = ax.plot(pos[0], pos[1], 'ro', markersize=5)
+                drawn_artists.append(robot_plot)
+                robot_sensing_range = Circle(
+                    (pos[0], pos[1]), sensing_range,
+                    fill=False, linestyle='--', color='red')
+                ax.add_patch(robot_sensing_range)
+                drawn_artists.append(robot_sensing_range)
 
         # Return all drawn artists.
-        return ax.lines
+        # return ax.lines
+        return drawn_artists
 
     # Create the animation with 500 frames and update every 50ms
-    ani = FuncAnimation(fig, update, frames=1000,
-                        interval=60, blit=True, repeat=False)
+    ani = FuncAnimation(fig, update, frames=200,
+                        interval=50, blit=False, repeat=False)
 
     plt.show()
 

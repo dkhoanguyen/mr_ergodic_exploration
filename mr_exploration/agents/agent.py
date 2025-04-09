@@ -3,8 +3,7 @@
 import numpy as np
 from mr_exploration.dynamics.dynamics_base import DynamicsBase
 from mr_exploration.controllers.ergodic_controller import RTErgodicController
-from mr_exploration.util.target_dist import TargetDist
-from mr_exploration.util.utils import *
+from mr_exploration.util.distribution import Distribution
 
 
 class Agent():
@@ -27,7 +26,8 @@ class Agent():
         self._ergodic_metrics = []
         self._ck_list = [None] * total_agents
 
-        self._t_dist: TargetDist = None
+        # self._t_dist: TargetDist = None
+        self._dist = Distribution()
         self._t_dist_has_updated = False
 
         self._state = initial_state
@@ -37,7 +37,7 @@ class Agent():
         return self._t_dist
 
     @t_dist.setter
-    def t_dist(self, value: TargetDist):
+    def t_dist(self, value: Distribution):
         self._t_dist = value
         self._t_dist_has_updated = True
 

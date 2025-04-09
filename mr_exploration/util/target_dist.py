@@ -16,8 +16,8 @@ class TargetDist(object):
         grid = np.meshgrid(*[np.linspace(0, 1, num_pts) for _ in range(2)])
         self.grid = np.c_[grid[0].ravel(), grid[1].ravel()]
 
-        self.means = [np.array([0.5, 0.5])]
-        self.vars  = [np.array([0.0075,0.0075])]
+        self.means = [np.array([0.5, 0.5]), np.array([0.75, 0.75])]
+        self.vars  = [np.array([0.075,0.075]), np.array([0.05,0.05])**2]
 
         self.has_update = False
         self.grid_vals = self.__call__(self.grid)

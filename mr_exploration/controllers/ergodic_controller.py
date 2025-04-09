@@ -5,7 +5,8 @@ from mr_exploration.controllers.basis import Basis
 from mr_exploration.controllers.barrier import Barrier
 from mr_exploration.controllers.replay_buffer import ReplayBuffer
 from mr_exploration.dynamics.dynamics_base import DynamicsBase
-from mr_exploration.util.utils import *
+from mr_exploration.util.distribution import Distribution
+from mr_exploration.util.fourier_metric import FourierMetric
 
 
 class RTErgodicController:
@@ -43,16 +44,6 @@ class RTErgodicController:
         self._phik = None
         self._ck = None
 
-    def reset(self):
-        '''
-        Reset the controller.
-
-        This method resets the control sequence and the replay buffer.
-        '''
-        self._u_seq = [0.0 * self._dynamics.action_space.sample()
-                       for _ in range(self._horizon)]
-        self._replay_buffer.reset()
-
     @property
     def phik(self):
         '''
@@ -84,7 +75,7 @@ class RTErgodicController:
             The ck value.
         '''
         return self._ck
-    
+
     @property
     def lamk(self):
         '''
@@ -105,14 +96,14 @@ class RTErgodicController:
         '''
         self._ck = ck
 
-    def set_t_dist(self, t_dist):
+    def set_t_dist(self, t_dist: Distribution):
         '''
         Set the target distribution t_dist.
 
         Args:
             t_dist: The target distribution.
         '''
-        self._phik = convert_phi2phik(
+        self._phik = FourierMetric.convert_phi2phik(
             self._basis, t_dist.grid_vals, t_dist.grid)
 
     def step(self, state, dt: float, ck_list=None, agent_num=None):
