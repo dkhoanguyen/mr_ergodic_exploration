@@ -47,6 +47,9 @@ class Agent():
     @property
     def state(self) -> np.ndarray:
         return self._state.copy()
+    
+    def plan(self, steps: int = 200, dt: float = 0.1):
+        pass
 
     def run(self, steps: int = 200, dt: float = 0.1):
         # First calculate the Fourier coefficients for the target distribution

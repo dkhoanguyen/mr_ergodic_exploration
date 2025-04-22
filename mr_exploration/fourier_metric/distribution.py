@@ -89,4 +89,5 @@ class Distribution:
         mask = distances <= radius
         sub_grid = self._grid[mask]
         sub_values = self._grid_values[mask]
-        return np.sum(sub_values)
+        return sub_grid, sub_values
+    

@@ -47,7 +47,7 @@ class SimpleSensor:
                 # Generate Gaussian noise for each dimension.
                 noise = np.random.randn(*gt.shape) * sigma
                 estimated = gt + noise
-                covariance_vector = sigma**2 * np.ones(gt.shape)
+                covariance_vector = sigma * np.ones(gt.shape)
                 valid.append(True)
             else:
                 # Out-of-range: return NaNs for measurement and infinite variance for the covariance.

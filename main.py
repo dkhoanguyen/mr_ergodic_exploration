@@ -13,11 +13,20 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Circle
 
+from scipy.stats import multivariate_normal
+
+
+def compute_discrete_entropy(prob_map: np.ndarray, base=np.e) -> float:
+    """Compute entropy of a discrete probability distribution over a grid."""
+    p = prob_map.flatten()
+    p = p[p > 0]  # remove zero entries
+    return -np.sum(p * np.log(p) / np.log(base))
+
 
 def main():
     num_agents = 1         # Number of robots
-    max_speed = 0.1        # Maximum allowable speed
-    max_accel = 1.0
+    max_speed = 0.4        # Maximum allowable speed
+    max_accel = 10.0
 
     sensing_range = 0.1
 
@@ -40,11 +49,16 @@ def main():
                           observation_space,
                           action_space,
                           explr_space)
+    
+    x = np.linspace(0, 1, 30)
+    y = np.linspace(0, 1, 30)
+    xx, yy = np.meshgrid(x, y)
+    grid_points = np.stack([xx.ravel(), yy.ravel()], axis=1)
 
     # Create target distribution and controller
     # target_dist = TargetDist(num_nodes=3)
-    target_dist = Distribution(num_pts=50)
-    controller = RTErgodicController(dynamics=di, horizon=15,
+    target_dist = Distribution(num_pts=30)
+    controller = RTErgodicController(dynamics=di, horizon=20,
                                      num_basis=5, batch_size=200, capacity=500)
 
     # Create multiple agents with different initial states.
@@ -52,21 +66,21 @@ def main():
 
     # Specify initial states for some agents.
     initial_states = [
-        np.array([0.5, 0.1, 0.1, 0]),
-        np.array([0.1, 0.9, 0.0, 0.1]),
+        np.array([0.1, 0.1, 0.0, 0]),
+        np.array([0.1, 0.1, 0.0, 0]),
         np.array([0.8, 0.8, 0.1, 0]),
         np.array([0.2, 0.8, 0.1, 0])
     ]
 
     ground_truth_animal_state = [
         np.array([0.55, 0.8]),
-        # np.array([0.2, 0.5])
+        np.array([0.2, 0.3])
     ]
 
     belief_animal = [Belief(state=np.array(
-        [0.5, 0.5]), variance=np.array([1.0, 1.0])),
+        [0.5, 0.5]), variance=np.array([0.5, 0.5])**2),
         Belief(state=np.array(
-            [0.5, 0.5]), variance=np.array([1.0, 1.0])),
+            [0.5, 0.5]), variance=np.array([0.5, 0.5])**2),
     ]
 
     for i in range(num_agents):
@@ -80,7 +94,7 @@ def main():
         robots.append(robot)
 
     # Animals
-    sensor = SimpleSensor(range=sensing_range, noise=0.025)
+    sensor = SimpleSensor(range=sensing_range, noise=0.01)
 
     # Set up the plot
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -105,8 +119,8 @@ def main():
             coll.remove()
 
         # Re-draw static elements (e.g., target distribution background).
-        # xy, vals = target_dist.get_grid_spec()  # static target distribution background
-        # ax.contourf(*xy, vals, levels=10)
+        xy, vals = target_dist.get_grid_spec()  # static target distribution background
+        ax.contourf(*xy, vals, levels=10)
         ax.set_title("Real-Time Robot Movement")
         ax.set_xlabel("X Position")
         ax.set_ylabel("Y Position")
@@ -128,6 +142,7 @@ def main():
                 sensor_state=r.state[:2],
                 ground_truth_state=ground_truth_animal_state
             )
+
             # Plot the animal's estimated position
             target_dist.means.clear()
             target_dist.vars.clear()
@@ -139,17 +154,18 @@ def main():
                 means.append(belief_animal[idx].state)
                 vars.append(belief_animal[idx].variance)
 
-                animal_pos = ax.plot(belief_animal[idx].state[0], belief_animal[idx].state[1], 'kx', markersize=7)
+                animal_pos = ax.plot(
+                    belief_animal[idx].state[0], belief_animal[idx].state[1], 'kx', markersize=7)
                 drawn_artists.append(animal_pos)
 
             target_dist.update(means, vars)
             r.t_dist = target_dist
-            # print(np.sum(target_dist.grid_vals))
-
-            # Calculate current free energy
-            value = target_dist.get_subsection(r.state[:2],sensing_range)
-            print(value)
-            
+            rv = multivariate_normal(
+                mean=target_dist.means[1], cov=np.diag(target_dist.vars[1]))
+            probs = rv.pdf(grid_points)
+            probs /= np.sum(probs)
+            prob_map = probs.reshape(xx.shape)
+            H = compute_discrete_entropy(prob_map)
 
             for other_robot in robots:
                 if r.idx != other_robot.idx:
